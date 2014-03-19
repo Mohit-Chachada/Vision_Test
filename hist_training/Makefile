@@ -1,0 +1,12 @@
+#train: svmtraining.o svm.o svm_scale.o
+#	g++ `pkg-config opencv --cflags` -o train svmtraining.o svm.o svm_scale.o `pkg-config opencv --libs` -g
+train: sliding_window.o svm.o svm_scale.o
+	g++ `pkg-config opencv --cflags` -o train sliding_window.o svm.o svm_scale.o `pkg-config opencv --libs` -g 	 
+svm.o: svm.h svm.cpp
+	g++ -c svm.cpp -o svm.o -g
+svm_scale.o: svm-scale.h svm-scale.cpp
+	g++ -c svm-scale.cpp -o svm_scale.o -g	
+svmtraining.o: sliding_window.cpp
+	g++ -c sliding_window.cpp -g
+clean:
+	rm -f *.o core train

@@ -1,0 +1,76 @@
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+#include <stdio.h>
+#include <math.h>
+
+using namespace std;
+using namespace cv;
+
+int main(int argc, char** argv)
+{
+	Mat img=imread(argv[1]);
+	Rect window;	// sliding window
+
+	// Input parameters
+	int min_width = 10;
+	int min_height = 10;
+	int max_width = 150;
+	int max_height = 150;	
+	int scale_factor = 2;
+	float aspect_ratio = 0.5;	//(height/width)
+	
+	// Sliding Window parameters
+	int delta_x = 5;
+	int delta_y = 5;	
+	Scalar color(255,0,0);
+	
+	// Sliding window variables
+	int img_width = img.cols;
+	int img_height = img.rows;	
+	int start_width, start_height;	// starting window size
+	int scale_number;
+	
+	if(aspect_ratio >= 1)
+	{
+		start_width = min(min_width,min_height);
+		start_height = aspect_ratio*start_width;
+	}
+	else
+	{
+		start_height = min(min_width,min_height);
+		start_width = start_height/aspect_ratio;		
+	}
+
+	scale_number = ceil(log(max(max_width,max_height)/max(min_width,min_height))/log(scale_factor));
+	
+	// Starting window
+	window.x = 0;
+	window.y = 0;
+	window.width = start_width;
+	window.height = start_height;
+	
+	for (int i=0; i< scale_number; i++)
+	{
+		
+		int sliding_num_x = ceil((img_width-window.width)/delta_x);
+		int sliding_num_y = ceil((img_height-window.height)/delta_y);
+	
+		for(int j=0; j<sliding_num_y; j++)
+		{
+			for(int k=0; k<sliding_num_x; k++)
+			{
+				rectangle(img,window,color);
+				imshow ("window",img);
+				waitKey(1);
+				window.x = window.x + delta_x;				
+			}
+			window.y = window.y + delta_y;			
+		}
+		
+		window.width = window.width*scale_factor;
+		window.height = window.height*scale_factor;		
+	}
+		
+	return 0;
+}

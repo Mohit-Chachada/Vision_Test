@@ -1,0 +1,298 @@
+#include "opencv2/ml/ml.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/imgproc/imgproc_c.h"
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <time.h>
+#include "svm.h"
+#include "svm-scale.h"
+#include <string.h>
+
+using namespace cv;
+using namespace std;
+
+const int train_samples = 465;
+const int classes = 2;  // object & non-object
+char pathToImages[] = "./images";
+ofstream trainingData;
+int class_labels[]	= {0,1};
+
+void storeTrainingData()
+{
+    trainingData.open("./training_data");
+    Mat img,outfile;
+    char file[255];
+
+    for (int i = 0; i < classes; i++)
+    {
+
+        int label = class_labels[i];
+        for (int j=0; j < train_samples ; j++)
+        {
+            sprintf(file, "%s/%d/%d.png", pathToImages, label, j);
+            img = imread(file, 1);
+            if (!img.data)
+            {
+                cout << "File " << file << " not found\n";
+                exit(1);
+            }
+
+  /// Separate the image in 3 places ( B, G and R )
+  vector<Mat> bgr_planes;
+  cvtColor(img,img,CV_BGR2HSV);
+  // HSV frames
+  split( img, bgr_planes );
+
+  /// Establish the number of bins for each channel
+  int histSize = 25;
+
+  /// Set the ranges ( for B,G,R )
+  float range[] = { 0, 256 } ;
+  const float* histRange = { range };
+
+  bool uniform = true; bool accumulate = false;
+
+  Mat b_hist, g_hist, r_hist;
+
+  /// Compute the histograms:
+  calcHist( &bgr_planes[0], 1, 0, Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
+  calcHist( &bgr_planes[1], 1, 0, Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
+  calcHist( &bgr_planes[2], 1, 0, Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
+//cout<<b_hist.rows<<"\t"<<b_hist.cols<<"\n";
+//cout<<b_hist<<"\n";
+//cout<<g_hist.rows<<"\t"<<g_hist.cols<<"\n";
+//cout<<g_hist<<"\n";
+//cout<<r_hist.rows<<"\t"<<r_hist.cols<<"\n";
+//cout<<r_hist<<"\n";
+
+  // Draw the histograms for B, G and R
+  int hist_w = 512; int hist_h = 400;
+  int bin_w = cvRound( (double) hist_w/histSize );
+
+  Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+
+  /// Normalize the result to [ 0, histImage.rows ]
+  normalize(b_hist, b_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+  normalize(g_hist, g_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+  normalize(r_hist, r_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+	
+	//combine b,g,r hists in a single feature vector
+	int nrcombine=3;
+	vector<float> feature; 	//feature vector
+	feature.resize(histSize*nrcombine);
+	for (int i=0; i<feature.size(); i++){
+		if(i<histSize)  feature[i] = b_hist.at<float>(i,0);
+		else if(i>=histSize && i<histSize*2)  feature[i] = g_hist.at<float>(i-histSize,0);
+		else if(i>=histSize*2 && i<histSize*3)  feature[i] = r_hist.at<float>(i-2*histSize,0);                    
+	}
+
+
+  /// Draw for each channel
+  for( int i = 1; i < histSize; i++ )
+  {
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
+                       Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
+                       Scalar( 255, 0, 0), 2, 8, 0  );
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ) ,
+                       Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
+                       Scalar( 0, 255, 0), 2, 8, 0  );
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ) ,
+                       Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
+                       Scalar( 0, 0, 255), 2, 8, 0  );
+  }
+
+  /// Display
+  namedWindow("calcHist Demo", CV_WINDOW_AUTOSIZE );
+  imshow("calcHist Demo", histImage );
+  waitKey(1);
+  
+  //storing bgr_histogram
+    stringstream ss;
+    ss << j;
+    string s_no = ss.str();
+  imwrite("/home/mohit/MyVision/hist_training/images/hists/"+s_no+"_1.png",histImage);
+
+
+
+            trainingData<<label<<" ";
+            for (int n = 0; n < feature.size(); n++)
+            {
+                trainingData << (n+1) << ":";
+                trainingData << feature.at(n) << " ";
+            }
+            //trainingData << "-1:0";
+            trainingData << "\n";
+        }
+    }
+    trainingData.close();
+}
+
+
+
+
+
+int main (int argc, char** argv) {
+
+    /*******************************/
+    // Model Generation and Prediction using System Commands part
+    /*******************************/
+
+//    storeTrainingData();
+
+    char command[1000];
+/*
+    sprintf(command,"./svm_scale -s training_data.range training_data > training_data.scale");
+    system(command);
+    sprintf(command,"./svm-train -s 0 -t 2 -b 1 training_data.scale training_data.model");
+    system(command);
+*/
+
+    // load model (scaled)
+    const char* modelName = "training_data.model";
+    svm_model* model = svm_load_model(modelName);
+
+	//Testing new sample
+	// test data [O/P]
+    Mat img,outfile;
+    char file[255];
+//    sprintf(file, "%s/%d.png", pathToImages, 218);
+//    sprintf(file, "%d.png", 10);
+    img = imread(argv[1], 1);
+    if (!img.data)
+    {
+        cout << "File " << file << " not found\n";
+        exit(1);
+    }
+
+    //resize(img,outfile,Size(sizex,sizey));
+    imshow ("test img",img);
+    waitKey(0);
+
+  /// Separate the image in 3 places ( B, G and R )
+  vector<Mat> bgr_planes;
+  cvtColor(img,img,CV_BGR2HSV);
+  // HSV frames
+  split( img, bgr_planes );
+
+  /// Establish the number of bins for each channel
+  int histSize = 25;
+
+  /// Set the ranges ( for B,G,R )
+  float range[] = { 0, 256 } ;
+  const float* histRange = { range };
+
+  bool uniform = true; bool accumulate = false;
+
+  Mat b_hist, g_hist, r_hist;
+
+  /// Compute the histograms:
+  calcHist( &bgr_planes[0], 1, 0, Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
+  calcHist( &bgr_planes[1], 1, 0, Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
+  calcHist( &bgr_planes[2], 1, 0, Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
+//cout<<b_hist.rows<<"\t"<<b_hist.cols<<"\n";
+//cout<<b_hist<<"\n";
+//cout<<g_hist.rows<<"\t"<<g_hist.cols<<"\n";
+//cout<<g_hist<<"\n";
+//cout<<r_hist.rows<<"\t"<<r_hist.cols<<"\n";
+//cout<<r_hist<<"\n";
+
+  // Draw the histograms for B, G and R
+  int hist_w = 512; int hist_h = 400;
+  int bin_w = cvRound( (double) hist_w/histSize );
+
+  Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+
+  /// Normalize the result to [ 0, histImage.rows ]
+  normalize(b_hist, b_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+  normalize(g_hist, g_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+  normalize(r_hist, r_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+	
+	//combine b,g,r hists in a single feature vector
+	int nrcombine=3;
+	vector<float> feature; 	//feature vector
+	feature.resize(histSize*nrcombine);
+	for (int i=0; i<feature.size(); i++){
+		if(i<histSize)  feature[i] = b_hist.at<float>(i,0);
+		else if(i>=histSize && i<histSize*2)  feature[i] = g_hist.at<float>(i-histSize,0);
+		else if(i>=histSize*2 && i<histSize*3)  feature[i] = r_hist.at<float>(i-2*histSize,0);                    
+	}
+
+
+  /// Draw for each channel
+  for( int i = 1; i < histSize; i++ )
+  {
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
+                       Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
+                       Scalar( 255, 0, 0), 2, 8, 0  );
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ) ,
+                       Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
+                       Scalar( 0, 255, 0), 2, 8, 0  );
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ) ,
+                       Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
+                       Scalar( 0, 0, 255), 2, 8, 0  );
+  }
+
+  /// Display
+  imshow("test img histogram", histImage );
+  waitKey(0);
+  
+
+    //  storing test data
+    ofstream testData;
+    testData.open("test_data");
+    testData<<1<<" ";
+    for (int n = 0; n < feature.size(); n++)
+    {
+        testData << (n+1) << ":";
+        testData << feature.at(n) << " ";
+    }
+    //testData << "-1:0";
+    testData << "\n";
+    testData.close();
+
+    // scaling test_data
+    int Tscale_argc = 4;
+    char **Tscale_argv;   // -r training_data.range test_data > test_data.scale
+    Tscale_argv = new char* [Tscale_argc];
+
+    for (int i=0; i< Tscale_argc; i++) {
+        Tscale_argv[i] = new char [100];
+    }
+    sprintf(Tscale_argv[1], "%s", "-r");
+    sprintf(Tscale_argv[2], "%s", "training_data.range");
+    sprintf(Tscale_argv[3], "%s", "test_data");
+    char* TscaleOP;
+    TscaleOP = new char [100];
+    sprintf(TscaleOP, "%s", "test_data.scale");
+    vector<float> test_scaled = scale_main(Tscale_argc,Tscale_argv,TscaleOP);
+
+    svm_node* x;
+    x = new svm_node [feature.size()+1];
+    for (int n = 0; n < feature.size(); n++)
+    {
+        svm_node tmp;
+        tmp.index = n+1;
+        tmp.value = test_scaled.at(n);
+        x[n] = tmp;
+//        cout<< " n " <<n<<"test_scaled[n] " <<test_scaled.at(n) <<endl;
+
+    }
+    x[feature.size()].index = -1;
+
+    double *prob_estimates=(double *)malloc(svm_get_nr_class(model)*sizeof(double));
+    double predictedValue = svm_predict_probability(model, x ,prob_estimates);
+//    double predictedValue = svm_predict(model, x);
+    cout<< "Predicted Value[1=buoy 0=no_buoy]: " << predictedValue <<endl;
+	cout<<"Prob of being buoy "<<prob_estimates[1]<<"\n";    
+
+//    sprintf(command,"./svm_scale -r training_data.range test_data > test_data.scale");
+//    system(command);
+    sprintf(command,"./svm_predict -b 1 test_data.scale training_data.model svmOutput");
+    system(command);
+
+    return 0;
+
+}

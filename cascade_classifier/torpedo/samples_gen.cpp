@@ -1,0 +1,65 @@
+#include "opencv2/ml/ml.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/imgproc/imgproc_c.h"
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <time.h>
+#include <string.h>
+
+using namespace cv;
+using namespace std;
+
+int POS_SAMPLES_NO = 4600;
+int NEG_SAMPLES_NO = 3100;
+const string POS_FOLDER_NAME = "pos";
+const string NEG_FOLDER_NAME = "neg";
+int SAMPLE_RECT_WIDTH = 25;
+int SAMPLE_RECT_HEIGHT = 20;
+int SAMPLE_RECT_X = 0;
+int SAMPLE_RECT_Y = 0;
+int OBJECTS_IN_SAMPLE = 1;
+
+ofstream pos_info;
+ofstream bg_txt;
+
+void storeDescriptionFiles()
+{
+    // POSITIVE
+    pos_info.open("./pos.info");
+    
+    for (int pos_no = 0; pos_no < POS_SAMPLES_NO; pos_no++)
+    {
+            //pos_info<<POS_FOLDER_NAME<<"/"<<pos_no<<".png"<<" "<<OBJECTS_IN_SAMPLE<<" "<<SAMPLE_RECT_X<<" "<SAMPLE_RECT_Y<<" "<<SAMPLE_RECT_WIDTH<<" "<<SAMPLE_RECT_HEIGHT<<"\n";
+            pos_info<<"pos/"<<pos_no<<".png"<<" 1 0 0 25 20\n";
+    }
+    pos_info.close();
+    
+    // NEGATIVE
+    bg_txt.open("bg.txt");
+    for (int neg_no = 0; neg_no < NEG_SAMPLES_NO; neg_no++)
+    {
+            bg_txt<<NEG_FOLDER_NAME<<"/"<<neg_no<<".png"<<"\n";
+    }
+    bg_txt.close();
+}
+
+
+
+
+
+int main (int argc, char** argv) {
+
+    storeDescriptionFiles();
+
+    char command[1000];
+    sprintf(command,"opencv_createsamples -vec torpedo.vec -info pos.info -w 25 -h 20 -num 4600");  // -show
+    system(command);
+    sprintf(command,"opencv_traincascade -data data -vec torpedo.vec -bg bg.txt -numPos 4500 -numNeg 3000 -numStages 6 -featureType LBP -w 25 -h 20 -maxFalseAlarmRate 0.25 -minHitRate 0.995");
+    system(command);
+
+return 0;
+ }
+
