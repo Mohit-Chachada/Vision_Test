@@ -12,13 +12,12 @@
 using namespace cv;
 using namespace std;
 
-#define PI 3.14
-
 vector<float> calcRPTFeature(Mat img)
 {
 	//Params
 	int N = 20;											// size of feature vector
 	
+	float PI = 3.14;	
 	Mat I_gray = Mat(Size(img.cols,img.rows),CV_8UC1);
 	cvtColor(img,I_gray,CV_BGR2GRAY);
 	int width = img.cols;
@@ -69,7 +68,8 @@ vector<float> calcRPTFeature(Mat img)
 //		feature[i] = I_avg[i];
 		feature[i] = I_norm[i];
 		//To avoid variations at vary small and very large radii, dont consider those feature elements
-		if(radius[i]<0.30*max_r || radius[i]>0.90*max_r)
+//		if(radius[i]<0.30*max_r || radius[i]>0.90*max_r)
+		if(i<0.2*N || i>0.75*N)
 		{
 			feature[i] = 0;
 		}		
@@ -80,6 +80,7 @@ vector<float> calcRPTFeature(Mat img)
 
 int main(int argc, char** argv)
 {
+	// calc feature for 1st image
 	Mat img=imread(argv[1]);
 	// NOTE: Not Illumination Invariant
 	vector<float> feature=calcRPTFeature(img);
@@ -108,9 +109,23 @@ int main(int argc, char** argv)
 		cout<<feature_test[i]<<"\t";
 	}
 	cout<<"\n";
-		
+	
+	// calc feature for 2nd image
+	Mat img2=imread(argv[2]);
+	vector<float> feature2=calcRPTFeature(img2);
+	
+	float error=0;
+	// calc sum of squared error over feature vectors
+	for(int i=0;i<feature.size();i++)
+	{
+		error = error + pow((feature[i]-feature2[i]),2);
+	}
+	cout<<"error: "<<error<<"\n";
+	if(error<0.01) cout<<"match\n";
+	else cout<<"not match\n";
 	imshow("input image",img);
 	imshow("rotated image",test);
+	imshow("2nd image",img2);	
 	waitKey(0);
 	return 0;
 }	

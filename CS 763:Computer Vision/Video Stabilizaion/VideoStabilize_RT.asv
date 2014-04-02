@@ -1,0 +1,51 @@
+clear;
+clc;
+frames = getVideoFrames('gbus.avi');
+%displayvideo(frames,0.05);
+frames_sh = generate_shaky_video_Rigid('gbus.avi');
+displayvideo(frames_sh,0.05);
+
+%[image, descriptors, locs] = sift(frames(:,:,1));
+%showkeys(image,locs);
+
+nFrames = size(frames_sh,3);
+tr = zeros(3,nFrames); % motion struct {tx,ty,theta}'
+for k=2:nFrames
+    [num,pts1,pts2] = match(frames_sh(:,:,k-1),frames_sh(:,:,k));
+    [tx,ty,theta] = estimate2dRotation_TranslationLS(pts1,pts2);
+    tr(1,k) = tx;
+    tr(2,k) = ty;
+    tr(3,k) = theta;
+end
+
+% smooth the obtained motion
+win_size = 7;
+tr_sm = smoothMotion(tr,win_size);
+
+% warp shaky video to make smooth video
+dtr = zeros(size(tr,1),1);
+frames_wp = frames_sh;
+for n=2:nFrames
+    dtr = [0;0;tr(:,n)];
+    dtr = (tr(:,n)-tr_sm(:,n));
+    frame_wp = warpTranslationFrame(frames_sh(:,:,n),dtr);
+    frames_wp(:,:,n) = frame_wp(:,:);
+end
+
+% combine frames_sh and frames_wp
+[H,W,~] = size(frames_sh);
+combine(1:H,:,:) = frames_sh(:,:,:);
+combine(H+1:2*H,:,:) = frames_wp(:,:,:);
+
+% store stabilized video
+storeVideo(combine,'save.avi');
+
+%displayvideo(frames_sh,0.05);
+%displayvideo(frames_wp,0.05);
+
+%figure(1);plot(tr(1,:));hold on;plot(tr_sm(1,:),'color','g');
+%figure(2);plot(tr(2,:));
+%figure(3);plot(tr(3,:));
+%hold on;
+%plot(tr_sm(1,:),'color','g');
+%hold off
