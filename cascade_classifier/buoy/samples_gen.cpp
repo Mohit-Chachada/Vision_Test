@@ -12,7 +12,7 @@
 using namespace cv;
 using namespace std;
 
-int POS_SAMPLES_NO = 2900;
+int POS_SAMPLES_NO = 2800;//2900;
 int NEG_SAMPLES_NO = 3200;
 const string POS_FOLDER_NAME = "pos";
 const string NEG_FOLDER_NAME = "neg";
@@ -55,11 +55,12 @@ int main (int argc, char** argv) {
     storeDescriptionFiles();
 
     char command[1000];
-    sprintf(command,"opencv_createsamples -vec buoy.vec -info pos.info -w 20 -h 25 -num 2900");  // -show
+    sprintf(command,"opencv_createsamples -vec buoy.vec -info pos.info -w 20 -h 25 -num 2800");  // -show
     system(command);
-    sprintf(command,"opencv_traincascade -data data -vec buoy.vec -bg bg.txt -numPos 2800 -numNeg 3000 -numStages 10 -featureType LBP -w 20 -h 25 -bt GAB");
+    cout<<"vec file created\n";
+    sprintf(command,"opencv_traincascade -data data -vec buoy.vec -bg bg.txt -numPos 2700 -numNeg 3000 -numStages 10 -featureType LBP -w 20 -h 25 -bt GAB");
     system(command);
-
+    cout<<"Training complete\n";
 return 0;
  }
 

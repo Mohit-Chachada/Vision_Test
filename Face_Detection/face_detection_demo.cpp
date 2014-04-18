@@ -34,7 +34,7 @@ int main( int argc, const char** argv )
 	if( !eyes_cascade.load( eyes_cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
 	//-- 2. Read the video stream
-	capture = cvCaptureFromCAM( -1 );
+	capture = cvCaptureFromCAM(-1);
 
 	Size S = Size(640,480);
 	const string NAME="1.avi";
