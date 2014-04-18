@@ -1,0 +1,73 @@
+*****************************
+SD card SETUP
+Find sd card port using
+$ df -h 
+it will be something like /dev/sdb1
+
+Copy and convert the ubuntu img file to be able to boot from microSD card
+$ sudo dd bs=4M if=/path/ubuntu_motion020812.img of=/dev/sdb1
+*****************************
+Unmount SD card and use it on the beaglebone
+
+Install screen on your laptop
+$ sudo apt-get install screen
+
+******************************
+For Serial Terminal on Linux:
+
+1.Run the mkudevrule.sh
+2. screen /dev/ttyUSB0 115200
+To exit the screen:
+Ctrl+A,k and then click Y to terminate the screen.
+******************************
+After setup:
+	if 1st time:
+		user: root & pwd:<nothing, just hit ENTER>
+	else
+		if ubuntu 
+		user: ubuntu pwd: temppwd
+******************************
+I. Setup the IP address:
+        1. sudo ifconfig eth0 <ip> netmask <netmask>
+        2. sudo route add default gw <gw>
+        3. sudo echo `nameserver <DNS server>` > /etc/resolv.conf
+
+******************************
+Angstrom Distribution 
+******************************
+Login as root
+Check led turning on/off
+to turn on: $ echo 1 > /sys/class/leds/beaglebone::usr3/brightness
+to turn off:$ echo 0 > /sys/class/leds/beaglebone::usr3/brightness
+*******************************
+set up a new user
+$ useradd <username> -g sudo
+$ passwd <username>
+>Enter pwd 2 times
+******************************
+set up ssh on BeagleBone
+copy your public key to the home directory of <username>
+$ cat id_rsa.pub >> ~/.ssh/authorized_keys
+set up ssh on Host PC
+In ~/.ssh/config 
+add the following lines:
+Host bbone
+        User <username>
+        Hostname 192.168.7.2
+        IdentityFile ~/.ssh/id_rsa.pub
+*******************************
+check cpu frequency on BeagleBone
+$ cpufreq-info
+$ cpufreq-set -f 500
+*******************************
+a)display x11 server works only on non-root user (actually the one who started the server)
+thus root cant display any gui
+Solution:
+use other user only
+b) video capture permision not allowed for other user:
+solution: change permission for /dev/video0 to allow other user (at startup)
+$ chmod a+rw /dev/video0
+*******************************
+LINKS:
+Operating BeagleBone from host Linux(Ubuntu)
+http://www.lvr.com/beaglebone.htm

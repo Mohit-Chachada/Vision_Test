@@ -1,0 +1,25 @@
+to check if video4linux2 works for ur usb cam
+$ v4l2-ctl --list-devices
+$ v4l2-ctl --all
+
+to control / change any parameters of camera
+$ v4l2-ctl --set-ctrl=brightness=200
+
+to check if the values changes
+$ v4l2-ctl --all
+
+to check for allowable camera's capturing formats
+$ v4l2-ctl --list-formats
+
+to change image capture properties
+$ v4l2-ctl --set-fmt-video=width=800,height=448,pixelformat=1
+
+to store video using ffmpeg or avconv
+ffmpeg -f video4linux2 -r 30 -s 320x240 -i /dev/video0 out.mp4
+
+to dynamically update the camera parameters:
+a) using v4l2-ctl
+$ v4l2-ctl --set-ctrl=<property>=<value>
+b) using uvcdynctrl
+$ uvcdynctrl --set=<property> <value>
+
