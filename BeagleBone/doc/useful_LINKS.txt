@@ -1,0 +1,39 @@
+PWM:
+(Kernel 3.8+)
+Official :
+http://elinux.org/BeagleBone_and_the_3.8_Kernel#Cape_Manager_and_Device_Tree_Overlays
+
+Simple Solution:
+https://groups.google.com/forum/#!topic/beagleboard/qma8bMph0yM
+  modprobe pwm_test
+  echo am33xx_pwm > /sys/devices/bone_capemgr.9/slots
+  echo bone_pwm_P9_14 > /sys/devices/bone_capemgr.9/slots
+  echo 500 > /sys/devices/ocp.2/pwm_test_P9_14.*/period
+  echo 250 > /sys/devices/ocp.2/pwm_test_P9_14.*/duty
+http://hipstercircuits.com/enable-pwm-on-beaglebone-with-device-tree-overlays/
+
+
+(Kernel <3.8)
+http://makingaquadrotor.wordpress.com/2012/09/06/explanation-of-the-pwm-modules-on-the-beaglebone/
+
+BoneScript:
+http://beaglebone.cameon.net/home/using-pwm-outputs
+
+
+Servo Position Control Example BoneScript:
+http://beagleboard.org/Support/BoneScript/ServoMotor/
+
+AnalogWrite BoneScript Example:
+http://beagleboard.org/Support/BoneScript/analogWrite/
+
+Controlling Onboard LEDs using C:
+http://derekmolloy.ie/beaglebone-controlling-the-on-board-leds-using-c/
+
+Using Device Tree Overlays for GPIOs:
+http://derekmolloy.ie/gpios-on-the-beaglebone-black-using-device-tree-overlays/
+
+Using GPIO:
+http://beaglebone.cameon.net/home/using-the-gpios
+
+BeagleBone(3.3V Level) With Arduino(5V Level):
+http://www.instructables.com/id/How-to-make-a-BeagleBone-and-an-Arduino-communicat/
