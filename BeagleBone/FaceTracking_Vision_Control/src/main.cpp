@@ -244,8 +244,8 @@ int main( int argc, const char** argv )
 			{
 				cout<<"Face Detected!\n";
 				// calculate error
-				float error =  target_center.x - width/2;
 				// since the camera is vertical, max_error=height/2 otherwise it shud be width/2
+				float error =  height/2-target_center.x;
 				float max_error = height/2;
 
 				// Set Direction depending on sign of error	
